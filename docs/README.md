@@ -44,7 +44,7 @@
 1. **Склонируйте репозиторий**
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Artemka2031/siem-connector-test.git
    cd siem-connector-test
    ```
 

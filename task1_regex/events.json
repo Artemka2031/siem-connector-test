@@ -1,0 +1,34 @@
+[
+  {
+    "event_1": {
+      "timestamp": "Jun  6 17:51:24",
+      "hostname": "ksmg.loc",
+      "action": "Delete all messages in MTA queues: success, queues: [def]",
+      "description": "Ќачинаем с начала: извлекаем врем€, хост и действие."
+    }
+  },
+  {
+    "event_2": {
+      "timestamp": "Oct 15 2018 07:49:40",
+      "device": "HuaweiS6700",
+      "username": "efros_w",
+      "description": "Ќачинаем с начала: врем€, устройство, им€ пользовател€."
+    }
+  },
+  {
+    "event_3": {
+      "error_code": "HSCE2001",
+      "username": "hscroot",
+      "partition_id": "14",
+      "description": "Ќачинаем с конца: код ошибки, им€ пользовател€, ID раздела."
+    }
+  },
+  {
+    "event_4": {
+      "username": "otadmin@otds.admin",
+      "host_ip": "10.56.70.77",
+      "source_ip": "10.56.70.77",
+      "description": "Ќачинаем с конца: им€ пользовател€, IP хоста, IP источника."
+    }
+  }
+]

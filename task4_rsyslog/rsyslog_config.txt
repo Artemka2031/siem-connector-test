@@ -1,0 +1,101 @@
+# File: task4_rsyslog/rsyslog_config.txt
+# Description: Настройка rsyslog для мониторинга логов Apache и отправки на SIEM-сервер.
+
+# Задача: Настроить мониторинг файла /var/log/apache.log на CentOS с отправкой событий
+# на сервер 10.10.10.10 по протоколу syslog с меткой "apache" и уровнем local0.
+
+# Пример лога Apache:
+# 192.168.1.100 - - [11/Apr/2025:10:00:00 +0000] "GET /index.html HTTP/1.1" 200 1234
+
+# Шаги настройки:
+
+1. Убедитесь, что rsyslog установлен:
+   sudo yum install rsyslog
+   sudo systemctl enable rsyslog
+   sudo systemctl start rsyslog
+
+2. Отредактируйте /etc/rsyslog.conf, добавив:
+
+   # Включаем модуль для чтения файлов
+   module(load="imfile")
+
+   # Настраиваем мониторинг файла Apache
+   input(type="imfile"
+         File="/var/log/apache.log"
+         Tag="apache:"
+         Facility="local0"
+         Severity="info"
+         PersistStateInterval="1000"
+         readMode="2")  # Для многострочных логов Apache
+
+   # Фильтр для ошибок 5xx
+   if $programname == "apache" and $msg contains " 5" then {
+       local0.* @10.10.10.10:514
+   } else {
+       local0.* @10.10.10.10:514
+   }
+
+3. (Опционально) Для надёжности используйте TCP:
+   local0.* @@10.10.10.10:514
+
+4. Проверьте синтаксис:
+   rsyslogd -N1
+
+5. Перезапустите rsyslog:
+   sudo systemctl restart rsyslog
+
+6. Тестирование:
+   # Отправьте тестовый лог
+   echo "192.168.1.100 - - [11/Apr/2025:10:00:00 +0000] \"GET /error HTTP/1.1\" 500 1234" >> /var/log/apache.log
+   # Проверьте локальный лог
+   tail -f /var/log/messages | grep apache
+   # Проверьте соединение
+   nc -zv 10.10.10.10 514
+
+# Интеграция с SIEM:
+- В Ankey SIEM настройте парсер для логов с тегом "apache:".
+- Извлекайте поля: client_ip, timestamp, request, status_code.
+- Пример парсера (псевдокод):
+  regex: ^(?P<client_ip>\S+) - - \[(?P<timestamp>[^\]]+)\] "(?P<request>[^"]+)" (?P<status_code>\d+)
+- Настройте алерты на status_code >= 500 для выявления инцидентов.
+
+# Безопасность:
+- Используйте TLS для защиты передачи:
+  module(load="omrelp")
+  action(type="omrelp"
+         target="10.10.10.10"
+         port="6514"
+         tls="on"
+         tls.caCert="/etc/pki/tls/certs/ca.pem")
+- Ограничьте доступ к /var/log/apache.log:
+  chmod 640 /var/log/apache.log
+  chown root:adm /var/log/apache.log
+
+# Ротация логов:
+# /etc/logrotate.d/apache
+/var/log/apache.log {
+    daily
+    rotate 7
+    compress
+    missingok
+    postrotate
+        /bin/systemctl reload rsyslog
+    endscript
+}
+
+# Тестовый скрипт для генерации логов:
+# /usr/local/bin/test_apache_log.sh
+#!/bin/bash
+echo "192.168.1.100 - - [$(date '+%d/%b/%Y:%H:%M:%S %z')] \"GET /test HTTP/1.1\" 200 1234" >> /var/log/apache.log
+echo "192.168.1.100 - - [$(date '+%d/%b/%Y:%H:%M:%S %z')] \"GET /error HTTP/1.1\" 500 5678" >> /var/log/apache.log
+
+# Выполните:
+chmod +x /usr/local/bin/test_apache_log.sh
+/usr/local/bin/test_apache_log.sh
+
+# Замечания:
+- Фильтр на 5xx помогает SIEM фокусироваться на инцидентах.
+- TLS и ротация логов обязательны в продакшене.
+- Для масштабирования добавьте балансировщик логов (например, syslog-ng).
+
+Автор: Артём Переятенцев
